@@ -56,7 +56,7 @@ async def handle_voice_webhook(request: Request):
                     context["user"] = user
                     greeting = f"Hello {user['full_name']}. How can I help you today?"
                     resp.say(greeting)
-                    resp.record(action="/twilio/voice", play_beep=True, timeout=2, max_length=30)
+                    resp.record(action="/twilio/voice", play_beep=True, timeout=2, max_length=60)
                 else:
                     resp.say("Invalid PIN. Please try again.")
                     gather = Gather(num_digits=4, action="/twilio/voice")
@@ -74,14 +74,21 @@ async def handle_voice_webhook(request: Request):
         
         # If we have a recording, process it
         if recording_url:
+            # Check duration
+            duration = form_data.get("RecordingDuration")
+            print(f"Recording Duration: {duration}")
+            
+            # If duration is missing or too short (e.g. < 1 second), it's likely silence/noise.
+            # Twilio might send '0' or '1'.
+            if duration and int(duration) <= 1:
+                print("Recording too short. Listening again...")
+                resp.record(action="/twilio/voice", play_beep=False, timeout=2, max_length=60)
+                return Response(content=str(resp), media_type="application/xml")
+
             print(f"Downloading audio from: {recording_url}")
             # 1. Download audio
-            # Use auth in case "Enforce HTTP Auth" is enabled
             from app.config import TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN
             audio_response = requests.get(recording_url, auth=(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN))
-            
-            print(f"Audio Download Status: {audio_response.status_code}")
-            print(f"Audio Content-Type: {audio_response.headers.get('Content-Type')}")
             
             if audio_response.status_code != 200:
                 print(f"Failed to download audio: {audio_response.text}")
@@ -94,6 +101,12 @@ async def handle_voice_webhook(request: Request):
             english_text, detected_lang = await speech_to_english(audio_bytes)
             print(f"Transcript: {english_text}, Detected Lang: {detected_lang}")
             
+            # If transcript is empty, listen again
+            if not english_text or not english_text.strip():
+                 print("Empty transcript. Listening again...")
+                 resp.record(action="/twilio/voice", play_beep=False, timeout=2, max_length=60)
+                 return Response(content=str(resp), media_type="application/xml")
+
             # Update History (User)
             context["history"].append({"role": "user", "parts": [english_text]})
             
@@ -128,19 +141,15 @@ async def handle_voice_webhook(request: Request):
             
             resp.play(play_url)
             # Record again with silence detection
-            resp.record(action="/twilio/voice", play_beep=False, timeout=2, max_length=30) 
+            # Increased timeout to 5 to give user time to think/start speaking
+            resp.record(action="/twilio/voice", play_beep=False, timeout=2, max_length=60) 
             
             return Response(content=str(resp), media_type="application/xml")
             
         else:
             # Authenticated but no recording (maybe just finished auth greeting)
             # Just wait for input
-            # timeout=2 means wait 2 seconds of SILENCE before submitting. 
-            # But for initial wait, we might want longer? 
-            # No, timeout in <Record> is "End recording after N seconds of silence".
-            # We also need to know when to START.
-            # <Record> starts immediately.
-            resp.record(action="/twilio/voice", play_beep=True, timeout=2, max_length=30)
+            resp.record(action="/twilio/voice", play_beep=True, timeout=2, max_length=60)
             return Response(content=str(resp), media_type="application/xml")
 
     except Exception as e:

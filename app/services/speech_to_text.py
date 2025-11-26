@@ -5,41 +5,37 @@ import io
 # Initialize Sarvam Client
 client = SarvamAI(api_subscription_key=SARVAM_API_KEY)
 
-async def speech_to_english(audio_bytes: bytes) -> str:
+async def speech_to_english(audio_bytes: bytes) -> tuple[str, str]:
     """
     Transcribes audio bytes to English text using Sarvam AI (Saarika/Saaras).
-    Defaults to 'saarika:v2.5' as per documentation.
+    Returns a tuple of (transcript, detected_language_code).
     """
     try:
         # Create a file-like object from bytes
         audio_file = io.BytesIO(audio_bytes)
-        audio_file.name = "audio.wav" # Sarvam SDK might check extension
+        audio_file.name = "audio.wav" 
 
-        # Call Sarvam STT API
-        # Using synchronous call as the SDK seems synchronous based on docs, 
-        # but wrapping in async function for FastAPI.
-        # If SDK supports async, we should await it. 
-        # Based on quickstart: response = client.speech_to_text.transcribe(...)
-        
         response = client.speech_to_text.transcribe(
             file=audio_file,
-            model="saarika:v2.5", # Using saarika:v2.5 as default STT model
-            # language_code="unknown" # Let it detect or specify if known
+            model="saarika:v2.5", 
         )
         
-        # Extract transcript
-        # Response structure: {'transcript': '...', ...} or object
-        # Assuming response is an object or dict. 
-        # Quickstart print(response) suggests it returns a response object.
-        # I'll assume it has a transcript attribute or key.
-        
+        # Extract transcript and language_code
+        # Response object should have 'transcript' and 'language_code'
+        transcript = ""
+        language_code = "hi-IN" # Default fallback
+
         if hasattr(response, 'transcript'):
-            return response.transcript
+            transcript = response.transcript
         elif isinstance(response, dict) and 'transcript' in response:
-            return response['transcript']
-        else:
-            # Fallback/Debug
-            return str(response)
+            transcript = response['transcript']
+            
+        if hasattr(response, 'language_code'):
+            language_code = response.language_code
+        elif isinstance(response, dict) and 'language_code' in response:
+            language_code = response['language_code']
+            
+        return transcript, language_code
 
     except Exception as e:
         print(f"Error in speech_to_english: {e}")

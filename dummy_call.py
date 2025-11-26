@@ -5,8 +5,8 @@ import xml.etree.ElementTree as ET
 # Configuration
 BASE_URL = "http://localhost:8000"
 WEBHOOK_URL = f"{BASE_URL}/twilio/voice"
-# Sample audio file (16kHz English speech)
-SAMPLE_AUDIO_URL = "https://raw.githubusercontent.com/Azure-Samples/cognitive-services-speech-sdk/master/samples/cpp/windows/console/samples/whatstheweatherlike.wav" 
+# Sample audio file (Kannada speech)
+SAMPLE_AUDIO_URL = "http://localhost:8001/kannada_sample.wav" 
 
 def simulate_call():
     print("--- Simulating Twilio Call ---")

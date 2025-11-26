@@ -52,30 +52,24 @@ async def handle_voice_webhook(request: Request):
         audio_bytes = audio_response.content
         
         # 2. STT (English)
-        english_text = await speech_to_english(audio_bytes)
-        print(f"Transcript: {english_text}")
+        english_text, detected_lang = await speech_to_english(audio_bytes)
+        print(f"Transcript: {english_text}, Detected Lang: {detected_lang}")
         
         # 3. LLM (Reasoning)
         llm_response = await run_llm(english_text)
         print(f"LLM Response: {llm_response}")
         
         # 4. Translate (English -> Native)
-        # We need to know the target language. 
-        # For now, let's assume Hindi (hi-IN) or try to detect from STT if possible.
-        # But STT returns English text (Saaras translates to English?). 
-        # Wait, Saaras is STT. Does it translate? 
-        # User said: "Saaras -> Speech-to-English-Text". So it transcribes AND translates to English?
-        # Or just transcribes English? 
-        # "Speech-to-English-Text" implies output is English.
-        # So we don't know the original language unless we detect it.
-        # Sarvam STT response might have language code.
-        # My implementation of speech_to_english returns only text.
-        # I should probably update it to return language too if needed, but for now let's default to Hindi 
-        # or let the LLM decide, or just hardcode 'hi-IN' as per "Indian languages" theme.
-        # Let's default to 'hi-IN' for the response for this demo.
-        target_lang = "hi-IN" 
+        # Use the detected language from STT as the target language
+        target_lang = detected_lang
+        if not target_lang or target_lang == "unknown":
+             target_lang = "hi-IN" # Fallback
         
-        translated_text = await translate_to_native(llm_response, target_lang)
+        if target_lang != "en-IN":
+            translated_text = await translate_to_native(llm_response, target_lang)
+        else:
+            translated_text = llm_response
+            
         print(f"Translated: {translated_text}")
         
         # 5. TTS (Bulbul)

@@ -6,3 +6,4 @@ twilio
 sarvamai
 google-generativeai
 python-dotenv
+supabase

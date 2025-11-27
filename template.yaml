@@ -46,7 +46,7 @@ Resources:
   VoiceAIFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: .
+      CodeUri: src/
       Handler: app.main.handler
       Environment:
         Variables:

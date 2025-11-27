@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+python-multipart
+requests
+twilio
+sarvamai
+google-generativeai
+python-dotenv
+supabase
+mangum

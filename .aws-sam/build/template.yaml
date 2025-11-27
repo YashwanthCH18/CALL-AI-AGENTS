@@ -1,0 +1,83 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: 'Voice AI Microservice
+
+  FastAPI application for AI voice calling in Indian languages.
+
+  '
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 512
+    Runtime: python3.11
+    Architectures:
+    - x86_64
+Parameters:
+  SarvamApiKey:
+    Type: String
+    Description: API Key for Sarvam AI
+    NoEcho: true
+  GeminiApiKey:
+    Type: String
+    Description: API Key for Gemini
+    NoEcho: true
+  TwilioAccountSid:
+    Type: String
+    Description: Twilio Account SID
+    NoEcho: true
+  TwilioAuthToken:
+    Type: String
+    Description: Twilio Auth Token
+    NoEcho: true
+  SupabaseUrl:
+    Type: String
+    Description: Supabase URL
+  SupabaseKey:
+    Type: String
+    Description: Supabase Key
+    NoEcho: true
+  GeminiModel:
+    Type: String
+    Default: gemini-2.5-flash
+    Description: Gemini Model Name
+Resources:
+  VoiceAIFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: VoiceAIFunction
+      Handler: app.main.handler
+      Environment:
+        Variables:
+          SARVAM_API_KEY:
+            Ref: SarvamApiKey
+          GEMINI_API_KEY:
+            Ref: GeminiApiKey
+          TWILIO_ACCOUNT_SID:
+            Ref: TwilioAccountSid
+          TWILIO_AUTH_TOKEN:
+            Ref: TwilioAuthToken
+          SUPABASE_URL:
+            Ref: SupabaseUrl
+          SUPABASE_KEY:
+            Ref: SupabaseKey
+          GEMINI_MODEL:
+            Ref: GeminiModel
+      Events:
+        HttpApi:
+          Type: HttpApi
+          Properties:
+            Path: /{proxy+}
+            Method: ANY
+    Metadata:
+      SamResourceId: VoiceAIFunction
+Outputs:
+  VoiceAIApi:
+    Description: API Gateway endpoint URL for Prod stage
+    Value:
+      Fn::Sub: https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com/
+  VoiceAIFunction:
+    Description: Voice AI Lambda Function ARN
+    Value:
+      Fn::GetAtt:
+      - VoiceAIFunction
+      - Arn
